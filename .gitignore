@@ -1,0 +1,6 @@
+*.sublime-project
+*.sublime-workspace
+*.out
+*.o
+*.h.gch
+bin/*
