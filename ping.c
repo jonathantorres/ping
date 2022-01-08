@@ -277,7 +277,8 @@ void sig_finish()
 
 void pr_pack(char *buf, int cc, struct sockaddr_in *from)
 {
-    int i, iphdrlen, triptime;
+    int i, iphdrlen, rc;
+    double triptime;
     struct ip *ip;    // ptr to IP header
     struct icmp *icp; // ptr to ICMP header
     long *lp;
@@ -287,7 +288,10 @@ void pr_pack(char *buf, int cc, struct sockaddr_in *from)
     from->sin_addr.s_addr = ntohl(from->sin_addr.s_addr);
 
     if (timing) {
-        gettimeofday(&tv, (struct timezone *) 0);
+        rc = gettimeofday(&tv, NULL);
+        if (rc < 0) {
+            perror("gettimeofday error");
+        }
     }
 
     /*
@@ -334,10 +338,10 @@ void pr_pack(char *buf, int cc, struct sockaddr_in *from)
     if (timing) {
         // Calculate the round-trip time, and update the min/avg/max.
         tvsub(&tv, (struct timeval *) &icp->icmp_data[0]);
-        triptime = tv.tv_sec * 1000 + (tv.tv_usec / 1000);
+        triptime = tv.tv_sec * 1000.0 + (tv.tv_usec / 1000.0);
 
         // milliseconds
-        printf("time=%d ms", triptime);
+        printf("time=%.2f ms", triptime);
         tsum += triptime;
         if (triptime < tmin) {
             tmin = triptime;
@@ -431,7 +435,7 @@ void recv_ping()
 
 void send_ping()
 {
-    int i;
+    int i, rc;
     struct icmp *icp; // ICMP header
     u_char *uptr;     // start of user data
 
@@ -450,7 +454,10 @@ void send_ping()
      * for time zone information, which we're not interested in.
      */
     if (timing) {
-        gettimeofday((struct timeval *) &sendpack[SIZE_ICMP_HDR], (struct timezone *) 0);
+        rc = gettimeofday((struct timeval *) &sendpack[SIZE_ICMP_HDR], NULL);
+        if (rc < 0) {
+            perror("gettimeofday error");
+        }
     }
 
     /*
