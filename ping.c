@@ -82,8 +82,8 @@ int ntransmitted; // sequence # for outbound packets = #sent
 int nreceived;    // # of packets we got back
 
 int timing;  // true if time-stamp in each packet */
-int tmin;    // min round-trip time */
-int tmax;    // max round-trip time */
+double tmin;    // min round-trip time */
+double tmax;    // max round-trip time */
 
 // sum of all round-trip times, for average
 // above 3 times are in milliseconds
@@ -269,7 +269,7 @@ void sig_finish()
     }
     printf("\n");
     if (nreceived && timing) {
-        printf("round-trip (ms)  min/avg/max = %d/%ld/%d\n", tmin, tsum / nreceived, tmax);
+        printf("round-trip (ms)  min/avg/max = %.2f/%.2f/%.2f\n", tmin, (float)(tsum / nreceived), tmax);
     }
     fflush(stdout);
     exit(0);
@@ -337,8 +337,8 @@ void pr_pack(char *buf, int cc, struct sockaddr_in *from)
     printf("icmp_seq=%d ", icp->icmp_seq);
     if (timing) {
         // Calculate the round-trip time, and update the min/avg/max.
-        tvsub(&tv, (struct timeval *) &icp->icmp_data[0]);
-        triptime = tv.tv_sec * 1000.0 + (tv.tv_usec / 1000.0);
+        tvsub(&tv, (struct timeval *) &icp->icmp_data);
+        triptime = tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
 
         // milliseconds
         printf("time=%.2f ms", triptime);
@@ -437,7 +437,6 @@ void send_ping()
 {
     int i, rc;
     struct icmp *icp; // ICMP header
-    u_char *uptr;     // start of user data
 
      // Fill in the ICMP header.
     icp = (struct icmp *) sendpack; // pointer to ICMP header
@@ -454,20 +453,10 @@ void send_ping()
      * for time zone information, which we're not interested in.
      */
     if (timing) {
-        rc = gettimeofday((struct timeval *) &sendpack[SIZE_ICMP_HDR], NULL);
+        rc = gettimeofday((struct timeval *) icp->icmp_data, NULL);
         if (rc < 0) {
             perror("gettimeofday error");
         }
-    }
-
-    /*
-     * And fill in the remainder of the packet with the user data.
-     * We just set each byte of udata[i] to i (although this is
-     * not verified when the echoed packet is received back).
-     */
-    uptr = &sendpack[SIZE_ICMP_HDR + SIZE_TIME_DATA];
-    for (i = SIZE_TIME_DATA; i < datalen; i++) {
-        *uptr++ = i;
     }
 
     /*
