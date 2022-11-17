@@ -1,9 +1,9 @@
 ## ping
-PING utility with a couple of tweaks. Original source code taken from "Unix Network Programming" 1st Edition by W. Richard Stevens
+PING utility with a couple of tweaks, make to compiled on a modern compiler. Original source code taken from "Unix Network Programming" 1st Edition by W. Richard Stevens.
 
 ### Compiling and running
-Use the `make` utility, once compiled run the program with `./ping`
+Use the `make` utility, once compiled run the program with `./bin/ping`
 ```bash
 make
-./ping destination
+./bin/ping destination
 ```
