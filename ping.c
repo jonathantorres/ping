@@ -30,7 +30,6 @@
 
 typedef void Sigfunc(int); /* for signal handlers */
 
-/* function prototypes */
 void init_v6(void);
 void proc_v4(char *, ssize_t, struct msghdr *, struct timeval *);
 void proc_v6(char *, ssize_t, struct msghdr *, struct timeval *);
@@ -63,18 +62,11 @@ struct proto {
     int icmpproto;           /* IPPROTO_xxx value for ICMP */
 } * pr;
 
-#ifdef IPV6
-
 #include <netinet/icmp6.h>
 #include <netinet/ip6.h>
 
-#endif
-
 struct proto proto_v4 = {proc_v4, send_v4, NULL, NULL, NULL, 0, IPPROTO_ICMP};
-
-#ifdef IPV6
 struct proto proto_v6 = {proc_v6, send_v6, init_v6, NULL, NULL, 0, IPPROTO_ICMPV6};
-#endif
 
 /* globals */
 char sendbuf[BUFSIZE];
@@ -115,15 +107,13 @@ int main(int argc, char **argv)
     h = Sock_ntop_host(ai->ai_addr, ai->ai_addrlen);
     printf("PING %s (%s): %d data bytes\n", ai->ai_canonname ? ai->ai_canonname : h, h, datalen);
 
-    /* 4initialize according to protocol */
+    /* initialize according to protocol */
     if (ai->ai_family == AF_INET) {
         pr = &proto_v4;
-#ifdef IPV6
     } else if (ai->ai_family == AF_INET6) {
         pr = &proto_v6;
         if (IN6_IS_ADDR_V4MAPPED(&(((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr)))
             err_quit("cannot ping IPv4-mapped IPv6 address");
-#endif
     } else
         err_quit("unknown address family %d", ai->ai_family);
 
@@ -236,7 +226,6 @@ void proc_v4(char *ptr, ssize_t len, struct msghdr *msg, struct timeval *tvrecv)
 
 void init_v6()
 {
-#ifdef IPV6
     int on = 1;
 
     if (verbose == 0) {
@@ -256,12 +245,10 @@ void init_v6()
     /* RFC 2292 */
     setsockopt(sockfd, IPPROTO_IPV6, IPV6_HOPLIMIT, &on, sizeof(on));
 #endif
-#endif
 }
 
 void send_v6()
 {
-#ifdef IPV6
     int len;
     struct icmp6_hdr *icmp6;
 
@@ -276,13 +263,11 @@ void send_v6()
     len = 8 + datalen; /* 8-byte ICMPv6 header */
 
     Sendto(sockfd, sendbuf, len, 0, pr->sasend, pr->salen);
-    /* 4kernel calculates and stores checksum for us */
-#endif /* IPV6 */
+    /* kernel calculates and stores checksum for us */
 }
 
 void proc_v6(char *ptr, ssize_t len, struct msghdr *msg, struct timeval *tvrecv)
 {
-#ifdef IPV6
     double rtt;
     struct icmp6_hdr *icmp6;
     struct timeval *tvsend;
@@ -321,7 +306,6 @@ void proc_v6(char *ptr, ssize_t len, struct msghdr *msg, struct timeval *tvrecv)
         printf("  %d bytes from %s: type = %d, code = %d\n", len,
                Sock_ntop_host(pr->sarecv, pr->salen), icmp6->icmp6_type, icmp6->icmp6_code);
     }
-#endif /* IPV6 */
 }
 
 void tv_sub(struct timeval *out, struct timeval *in)
@@ -478,7 +462,6 @@ char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
                 return (str);
             }
 
-#ifdef IPV6
         case AF_INET6:
             {
                 struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
@@ -487,9 +470,7 @@ char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
                     return (NULL);
                 return (str);
             }
-#endif
 
-#ifdef AF_UNIX
         case AF_UNIX:
             {
                 struct sockaddr_un *unp = (struct sockaddr_un *)sa;
@@ -502,7 +483,6 @@ char *sock_ntop_host(const struct sockaddr *sa, socklen_t salen)
                     snprintf(str, sizeof(str), "%s", unp->sun_path);
                 return (str);
             }
-#endif
 
 #ifdef HAVE_SOCKADDR_DL_STRUCT
         case AF_LINK:
